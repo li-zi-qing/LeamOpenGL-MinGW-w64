@@ -1,1 +1,7 @@
 /.idea/
+/cmake-build-*/
+/libGlobal/
+/py/
+/resources/object/
+!/py/init_dependencies.py
+!/py/url.json
