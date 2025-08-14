@@ -4,4 +4,4 @@
 /py/
 /resources/object/
 !/py/init_dependencies.py
-!/py/url.json
+!/py/config.json
