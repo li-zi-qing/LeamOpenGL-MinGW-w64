@@ -1,7 +1,7 @@
+#include <OpenGLTools.h>
 #include <fstream>
 #include <sstream>
 #include <iostream>
-#include <OpenGLTools.h>
 using namespace OpenGLTools;
 
 Shader::Shader(const GLchar* vertexPath, const GLchar* fragmentPath)
@@ -82,6 +82,45 @@ Shader& Shader::setBool(const std::string& name, const GLboolean value)
     return *this;
 }
 
+Shader& Shader::setBool(const packGlm<GLboolean>& value)
+{
+    glUniform1i(glGetUniformLocation(ID, static_cast<std::string>(value).c_str()), static_cast<GLboolean>(value));
+    return *this;
+}
+
+Shader& Shader::setInt(const packGlm<int>& value)
+{
+    glUniform1i(glGetUniformLocation(ID, static_cast<std::string>(value).c_str()), static_cast<GLint>(value));
+    return *this;
+}
+
+Shader& Shader::setFloat(const packGlm<float>& value)
+{
+    glUniform1f(glGetUniformLocation(ID, static_cast<std::string>(value).c_str()), static_cast<GLfloat>(value));
+    return *this;
+}
+
+Shader& Shader::setVec2(const packGlm<glm::vec2>& value)
+{
+    glUniform2fv(glGetUniformLocation(ID, static_cast<std::string>(value).c_str()), 1,
+                 &static_cast<glm::vec2>(value)[0]);
+    return *this;
+}
+
+Shader& Shader::setVec4(const packGlm<glm::vec4>& value)
+{
+    glUniform4fv(glGetUniformLocation(ID, static_cast<std::string>(value).c_str()), 1,
+                 &static_cast<glm::vec4>(value)[0]);
+    return *this;
+}
+
+Shader& Shader::setVec3(const packGlm<glm::vec3>& value)
+{
+    glUniform3fv(glGetUniformLocation(ID, static_cast<std::string>(value).c_str()), 1,
+                 &static_cast<glm::vec3>(value)[0]);
+    return *this;
+}
+
 Shader& Shader::setInt(const std::string& name, const GLint value)
 {
     glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
@@ -129,6 +168,27 @@ Shader& Shader::setVec4(
 )
 {
     glUniform4f(glGetUniformLocation(ID, name.c_str()), x, y, z, w);
+    return *this;
+}
+
+Shader& Shader::setMat2(const packGlm<glm::mat2>& value)
+{
+    glUniformMatrix2fv(glGetUniformLocation(ID, static_cast<std::string>(value).c_str()), 1, GL_FALSE,
+                       &static_cast<glm::mat2>(value)[0][0]);
+    return *this;
+}
+
+Shader& Shader::setMat3(const packGlm<glm::mat3>& value)
+{
+    glUniformMatrix3fv(glGetUniformLocation(ID, static_cast<std::string>(value).c_str()), 1, GL_FALSE,
+                       &static_cast<glm::mat3>(value)[0][0]);
+    return *this;
+}
+
+Shader& Shader::setMat4(const packGlm<glm::mat4>& value)
+{
+    glUniformMatrix4fv(glGetUniformLocation(ID, static_cast<std::string>(value).c_str()), 1, GL_FALSE,
+                       &static_cast<glm::mat4>(value)[0][0]);
     return *this;
 }
 
