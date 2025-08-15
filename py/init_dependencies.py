@@ -10,25 +10,52 @@ import platform
 import os
 from pathlib import Path
 
+# 定义安装路径
+project_root = Path(__file__).resolve().parent
 
-def ensure_requests_is_installed():
-    """
-    检查 requests 库是否已安装，如果未安装，则自动下载并安装。
-    """
-    try:
-        # 尝试导入 requests
-        import requests
-        print("requests 库已安装。")
-    except ImportError:
-        print("requests 库未找到，正在尝试安装...")
+VENV_NAME = '.venv'
+REQUIREMENTS_FILE = 'requirements.txt'
+
+# 创建虚拟环境并安装依赖.
+def create_and_install():
+
+    abs_venv_path = (project_root / VENV_NAME).resolve()
+    abs_requirements_path = (project_root / REQUIREMENTS_FILE).resolve()
+
+    # 检查虚拟环境是否已经存在
+    if not abs_venv_path.exists():
+        print(f"虚拟环境 '{VENV_NAME}' 不存在，正在创建...")
         try:
-            # 使用 pip 安装 requests
-            subprocess.check_call([sys.executable, "-m", "pip", "install", "requests"])
-            print("requests 库安装成功！")
+            # 执行创建虚拟环境的命令
+            subprocess.run([sys.executable, '-m', 'venv', abs_venv_path], check=True)
+            print(f"虚拟环境 '{VENV_NAME}' 创建成功。")
         except subprocess.CalledProcessError as e:
-            print(f"安装 requests 失败: {e}")
-            print("请手动运行 'pip install requests' 来安装。")
+            print(f"创建虚拟环境失败: {e}")
+            sys.exit(1)
+    else:
+        print(f"虚拟环境 '{VENV_NAME}' 已存在，跳过创建步骤。")
 
+    # 确定虚拟环境中 pip 的路径
+    if os.name == 'nt':  # Windows 系统
+        pip_path = os.path.join(VENV_NAME, 'Scripts', 'pip')
+    else:  # Linux / macOS 系统
+        pip_path = os.path.join(VENV_NAME, 'bin', 'pip')
+
+    # 检查 requirements.txt 文件是否存在
+    if abs_requirements_path.exists():
+        print(f"正在安装 '{REQUIREMENTS_FILE}' 中的依赖...")
+        try:
+            # 使用虚拟环境中的 pip 安装依赖
+            subprocess.run([pip_path, 'install', '-r', abs_requirements_path], check=True)
+            print("依赖安装成功！")
+        except subprocess.CalledProcessError as e:
+            print(f"安装依赖失败: {e}")
+            sys.exit(1)
+    else:
+        print(f"错误: 文件 '{REQUIREMENTS_FILE}' 不存在，无法安装依赖。")
+        sys.exit(1)
+
+# 解析 GLAD 的永久链接.
 def parse_glad_url(glad_url):
     """
     解析 GLAD 永久 URL 以提取配置字典。
@@ -70,6 +97,7 @@ def parse_glad_url(glad_url):
 
     return config
 
+# 运行 CMake 命令.
 def run_command(command, cwd=None, env = ''):
     """
     运行一个 shell 命令并检查错误。
@@ -91,6 +119,7 @@ def run_command(command, cwd=None, env = ''):
     finally:
         os.environ = prev_env
 
+# 下载资源文件.
 def download_source(url, download_save_path):
     """
     使用 urllib.request 从指定 URL 下载文件并保存到本地。
@@ -127,7 +156,7 @@ def download_source(url, download_save_path):
                 with open(download_save_path, 'wb') as f:
                     f.write(download_response.content)
                 print(f"下载成功！文件已保存为 '{download_save_path}'")
-
+                print(f"文件大小：{Path(download_save_path).stat().st_size >> 20} MB")
             else:
                 print("错误: 服务器未返回重定向响应。")
                 print("响应状态码:", response.status_code)
@@ -135,18 +164,30 @@ def download_source(url, download_save_path):
         except requests.exceptions.RequestException as e:
             print(f"请求失败: {e}")
             print("请检查你的配置参数和网络连接。")
+
     else:
+        print(f"正在从 '{url}' 下载...")
+        # 确保保存文件的目录存在
+        path = Path(download_save_path).parent
+        path.mkdir(parents=True, exist_ok=True)
         try:
-            print(f"正在从 '{url}' 下载...")
-            path = Path(download_save_path).parent
-            path.mkdir(parents=True, exist_ok=True)
-            # 发送请求并下载文件
-            urllib.request.urlretrieve(url, download_save_path)
+            # 发送 GET 请求，启用流式下载，以便处理大文件
+            response = requests.get(url, stream=True, timeout=60)
+
+            # 检查响应状态码是否成功 (200 OK)
+            response.raise_for_status()
+
+            # 将文件内容分块写入本地文件
+            with open(download_save_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
             print(f"文件 '{download_save_path}' 下载成功！")
-            print(f"文件大小：{Path(download_save_path).stat().st_size >> 20} 字节")
+            print(f"文件大小：{Path(download_save_path).stat().st_size >> 20} MB")
         except Exception as e:
             print(f"下载失败：发生错误 - {e}")
+            shutil.rmtree(download_save_path)
 
+# 解压资源文件
 def unzip_file(zip_path, extract_to):
     """
     解压 .zip 文件到指定目录。
@@ -174,8 +215,6 @@ def main():
     """
     主函数，用于下载、构建和安装依赖库。
     """
-    # 定义安装路径
-    project_root = Path(__file__).resolve().parent
 
     # 定义配置文件的路径
     json_file = project_root / "config.json"
@@ -185,8 +224,10 @@ def main():
             json_data = json.load(f)
     except FileNotFoundError:
         print(f"错误: 文件 '{json_file}' 未找到。")
+        sys.exit(1)
     except json.JSONDecodeError:
         print(f"错误: 文件 '{json_file}' 格式不正确。")
+        sys.exit(1)
 
     cmake_generator = 'Ninja'
     cmake_path = "cmake"
@@ -194,7 +235,7 @@ def main():
     cmake_defines = {
         "CMAKE_C_COMPILER": "gcc",
         "CMAKE_CXX_COMPILER": "g++",
-        "CMAKE_INSTALL_PREFIX": f"{str(Path("../libGlobal").resolve())}",
+        "CMAKE_INSTALL_PREFIX": f"{str(project_root / Path("../libGlobal").resolve())}",
         "CMAKE_MAKE_PROGRAM": ''
     }
     if 'build_config' in json_data:
@@ -282,7 +323,7 @@ def main():
                 print(f"{name} 的源代码已经存在...跳过克隆.")
 
             if 'cmake_args' in config:
-                if not build_dir.exists():
+                if not install_prefix.exists():
                     # 运行 CMake 配置，并显式指定 Ninja 和 MinGW-w64 编译器
                     cmake_command = [
                         f"{str(cmake_path)}",
@@ -296,16 +337,20 @@ def main():
                     run_command(cmake_command, env = compiler_root)
 
                     # 运行 CMake 构建
-                    run_command(["cmake", "--build", str(build_dir)])
+                    if not build_dir.exists():
+                        run_command(["cmake", "--build", str(build_dir)])
+                    else:
+                        print(f"库 ‘{name}’ 构建文件已存在...跳过构建.")
 
                     # 运行 CMake 安装
                     install_prefix.mkdir(parents=True, exist_ok=True)
                     run_command(["cmake", "--install", str(build_dir)])
                     print(f"安装 {name} 到 {install_prefix} 成功!")
+
                 else:
-                    print(f"库 ‘{name}’ 构建文件已存在...跳过构建")
+                    print(f"库 ‘{name}’ 库文件已存在...跳过构建和安装.")
             else:
-                if not build_dir.exists():
+                if not install_prefix.exists():
                     print(f"{name} 是一个仅标头库，跳过 CMake 构建...")
                     install_prefix.mkdir(parents=True, exist_ok=True)
                     for file in config['copy_file_list']:
@@ -347,7 +392,7 @@ def main():
 
 
 if __name__ == "__main__":
-    ensure_requests_is_installed()
+    create_and_install()
     import requests
 
     main()
