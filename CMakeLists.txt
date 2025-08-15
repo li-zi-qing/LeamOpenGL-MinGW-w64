@@ -2,7 +2,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 4.0)
 PROJECT(OpenGL)
 
 # 节章名
-SET(CHAPTER "colors")
+SET(CHAPTER "basicLighting")
 SET(MAIN_SRC_PATH ${PROJECT_SOURCE_DIR}/src/chapter)
 
 # 自定义库文件

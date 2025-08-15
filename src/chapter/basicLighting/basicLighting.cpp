@@ -1,7 +1,5 @@
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
 #include <OpenGLTools.h>
-#include <light/Uniform.h>
+#include <chapter/basicLighting/Uniform.h>
 using namespace OpenGLTools;
 
 GLfloat vertices[] = {
@@ -55,15 +53,15 @@ int main()
                                 .setCamera(Camera(glm::vec3(0.0f, 0.0f, 3.0f)))
                                 .setScreenWidth(800)
                                 .setScreenHeight(600)
-                                .setTitle("OpenGL Light")
+                                .setTitle("Basic Lighting | 基础光照")
                                 .builder();
         state == GL_FALSE)
     {
         return -1;
     }
     GLFWwindow* window = initInstance.getWindow();
-    Shader lightingShader("resources/shader/light/base_light.vert", "resources/shader/light/base_light.frag");
-    Shader lightCubeShader("resources/shader/light/light_cube.vert", "resources/shader/light/light_cube.frag");
+    Shader lightingShader("resources/shader/basicLighting/basic_lighting.vert", "resources/shader/basicLighting/basic_lighting.frag");
+    Shader lightCubeShader("resources/shader/basicLighting/light_cube.vert", "resources/shader/basicLighting/light_cube.frag");
     GLuint VBO, cubeVAO;
     glGenVertexArrays(1, &cubeVAO);
     glGenBuffers(1, &VBO);
