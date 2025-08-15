@@ -2,7 +2,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 4.0)
 PROJECT(OpenGL)
 
 # 节章名
-SET(CHAPTER "multipleLights")
+SET(CHAPTER "model")
 SET(MAIN_SRC_PATH ${PROJECT_SOURCE_DIR}/src/chapter)
 
 # 自定义库文件
@@ -30,6 +30,7 @@ SET(
         ${PROJECT_SOURCE_DIR}/libGlobal/glfw # GLFW
         ${PROJECT_SOURCE_DIR}/libGlobal/glad # GLAD2
         ${PROJECT_SOURCE_DIR}/libGlobal/glm # GLM
+        ${PROJECT_SOURCE_DIR}/libGlobal/assimp # ASSIMP
 )
 SET(
         LIB_STB
@@ -56,6 +57,13 @@ find_package(
 # 导入 GLM 库.
 find_package(
         glm
+        REQUIRED
+        CONFIG
+)
+
+# 导入 ASSIMP 库.
+find_package(
+        assimp
         REQUIRED
         CONFIG
 )
@@ -94,6 +102,7 @@ TARGET_LINK_LIBRARIES(
         PRIVATE
         glfw
         glm::glm
+        assimp::assimp
 )
 
 # 设置项目的 include.
@@ -112,3 +121,12 @@ ADD_CUSTOM_TARGET(
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/resources ${CMAKE_CURRENT_BINARY_DIR}/resources
         COMMENT "复制文件到构建目录..."
 )
+
+if (CMAKE_HOST_SYSTEM_NAME MATCHES "Windows")
+    ADD_CUSTOM_COMMAND(
+            TARGET CopyResources
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/libGlobal/assimp/bin ${CMAKE_CURRENT_BINARY_DIR}
+            COMMENT "复制 assimp bin 目录到构建目录..."
+    )
+endif ()

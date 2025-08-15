@@ -7,6 +7,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <packGlm.h>
+#include <vector>
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
 
 namespace OpenGLTools
 {
@@ -131,6 +134,55 @@ namespace OpenGLTools
         GLfloat zoom{45.0f};
 
         GLvoid updateCameraVectors();
+    };
+
+#define MAX_BONE_INFLUENCE 4
+
+    struct Vertex {
+        glm::vec3 Position;
+        glm::vec3 Normal;
+        glm::vec2 TexCoords;
+        glm::vec3 Tangent;
+        glm::vec3 Bitangent;
+        int m_BoneIDs[MAX_BONE_INFLUENCE];
+        float m_Weights[MAX_BONE_INFLUENCE];
+    };
+
+    struct Texture {
+        GLuint id;
+        std::string type;
+        std::string path;
+    };
+
+    class Mesh {
+    public:
+        std::vector<Vertex> vertices;
+        std::vector<GLuint> indices;
+        std::vector<Texture> textures;
+        Mesh(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices,
+             const std::vector<Texture>& textures);
+        void Draw(Shader& shader) const;
+
+    private:
+        GLuint VAO{}, VBO{}, EBO{};
+        GLvoid setupMesh();
+    };
+
+    class Model {
+    public:
+        explicit Model(const char* path, GLboolean gamma = GL_FALSE);
+        GLvoid Draw(Shader& shader) const;
+
+    private:
+        std::vector<Texture> textures_loaded;
+        std::vector<Mesh> meshes;
+        std::string directory;
+        GLboolean gammaCorrection;
+        GLvoid loadModel(const std::string& path);
+        GLvoid processNode(const aiNode* node, const aiScene* scene);
+        Mesh processMesh(aiMesh* mesh, const aiScene* scene);
+        std::vector<Texture> loadMaterialTextures(const aiMaterial* mat, aiTextureType type,
+                                                  const std::string& typeName);
     };
 
     class Init
