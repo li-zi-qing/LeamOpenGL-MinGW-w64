@@ -34,26 +34,37 @@ def create_and_install():
             sys.exit(1)
     else:
         print(f"虚拟环境 '{VENV_NAME}' 已存在，跳过创建步骤。")
-
-    # 确定虚拟环境中 pip 的路径
-    if os.name == 'nt':  # Windows 系统
-        pip_path = os.path.join(VENV_NAME, 'Scripts', 'pip')
-    else:  # Linux / macOS 系统
-        pip_path = os.path.join(VENV_NAME, 'bin', 'pip')
-
-    # 检查 requirements.txt 文件是否存在
-    if abs_requirements_path.exists():
-        print(f"正在安装 '{REQUIREMENTS_FILE}' 中的依赖...")
+    if os.name == 'nt':
+        venv_python_path = abs_venv_path / 'Scripts' / 'python.exe'
+        pip_path = abs_venv_path / 'Scripts' / 'pip'
+    else:
+        venv_python_path = abs_venv_path / 'bin' / 'python'
+        pip_path = abs_venv_path / 'bin' / 'pip'
+    if sys.executable != str(venv_python_path):
+        print("当前运行环境不在虚拟环境中，正在切换...")
+        # 使用虚拟环境中的解释器重新启动当前脚本
+        # 注意：sys.argv 包含了原始的命令行参数
         try:
-            # 使用虚拟环境中的 pip 安装依赖
-            subprocess.run([pip_path, 'install', '-r', abs_requirements_path], check=True)
-            print("依赖安装成功！")
-        except subprocess.CalledProcessError as e:
-            print(f"安装依赖失败: {e}")
+            subprocess.run([venv_python_path] + sys.argv, check=True)
+            # 成功重新启动后，退出当前进程
+            sys.exit(0)
+        except FileNotFoundError:
+            print(f"错误：找不到虚拟环境中的解释器 '{venv_python_path}'。")
             sys.exit(1)
     else:
-        print(f"错误: 文件 '{REQUIREMENTS_FILE}' 不存在，无法安装依赖。")
-        sys.exit(1)
+        # 检查 requirements.txt 文件是否存在
+        if abs_requirements_path.exists():
+            print(f"正在安装 '{REQUIREMENTS_FILE}' 中的依赖...")
+            try:
+                # 使用虚拟环境中的 pip 安装依赖
+                subprocess.run([pip_path, 'install', '-r', abs_requirements_path], check=True)
+                print("依赖安装成功！")
+            except subprocess.CalledProcessError as e:
+                print(f"安装依赖失败: {e}")
+                sys.exit(1)
+        else:
+            print(f"错误: 文件 '{REQUIREMENTS_FILE}' 不存在，无法安装依赖。")
+            sys.exit(1)
 
 # 解析 GLAD 的永久链接.
 def parse_glad_url(glad_url):
