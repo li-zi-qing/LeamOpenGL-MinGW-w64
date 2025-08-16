@@ -1,45 +1,54 @@
 {
   "build_config": {
-    "cmake_path": "../../../IDE/CLion/bin/cmake/win/x64/bin/cmake",
-    "compiler_root": "D:/IDE/CLion/bin/mingw/bin",
+    "cmake:A": "../../../IDE/CLion/bin/cmake/win/x64/bin/cmake",
     "generator": "Ninja",
+    "custom_env": {
+      "PATH": ["D:/IDE/CLion/bin/mingw/bin:P"]
+    },
     "define": {
-      "CMAKE_C_COMPILER_APP": "D:/IDE/CLion/bin/mingw/bin/gcc",
-      "CMAKE_CXX_COMPILER_APP": "D:/IDE/CLion/bin/mingw/bin/g++",
-      "CMAKE_MAKE_PROGRAM_APP": "D:/IDE/CLion/bin/ninja/win/x64/ninja",
-      "CMAKE_INSTALL_PREFIX_PATH": "../libGlobal"
+      "CMAKE_C_COMPILER:A": "D:/IDE/CLion/bin/mingw/bin/gcc",
+      "CMAKE_CXX_COMPILER:A": "D:/IDE/CLion/bin/mingw/bin/g++",
+      "CMAKE_MAKE_PROGRAM:A": "D:/IDE/CLion/bin/ninja/win/x64/ninja",
+      "CMAKE_INSTALL_PREFIX:SP": "../libGlobal"
     }
+  },
+  "glm": {
+    "repo": "https://github.com/g-truc/glm.git",
+    "tag": "1.0.1",
+    "cmake_args": [
+      "GLM_BUILD_TESTS=OFF",
+      "BUILD_SHARED_LIBS=OFF"
+    ]
+  },
+  "glfw": {
+    "repo": "https://github.com/glfw/glfw.git",
+    "tag": "3.4",
+    "cmake_args": ["GLFW_BUILD_TESTS=OFF"]
+  },
+  "stb": {
+    "repo": "https://github.com/nothings/stb.git",
+    "tag": "master",
+    "copy_file_list": [
+      {
+        "name": "stb_image.h",
+        "cpp_template": "#define STB_IMAGE_IMPLEMENTATION\n#include <stb_image.h>"
+      }
+    ]
+  },
+  "json": {
+    "repo": "https://github.com/nlohmann/json.git",
+    "tag": "v3.12.0",
+    "cmake_args": ["JSON_BuildTests=OFF"]
+  },
+  "assimp": {
+    "repo": "https://github.com/assimp/assimp.git",
+    "tag": "v6.0.2",
+    "cmake_args": ["ASSIMP_BUILD_TESTS=OFF", "ASSIMP_WARNINGS_AS_ERRORS=OFF"]
   },
   "glad": {
     "url": "https://gen.glad.sh/#generator=c&api=egl%3D1.5%2Cgl%3D4.6%2Cgles1%3D1.0%2Cgles2%3D3.2%2Cglsc2%3D2.0%2Cglx%3D1.4%2Cvulkan%3D1.4%2Cvulkansc%3D1.4%2Cwgl%3D1.0&profile=gl%3Dcore%2Cgles1%3Dcommon",
     "output": "../libGlobal/glad",
     "format": ".zip"
-  },
-  "glm": {
-    "repo": "https://github.com/g-truc/glm.git",
-    "tag": "1.0.1",
-    "cmake_args": ["-DGLM_BUILD_TESTS=OFF", "-DBUILD_SHARED_LIBS=OFF"]
-  },
-  "glfw": {
-    "repo": "https://github.com/glfw/glfw.git",
-    "tag": "3.4",
-    "cmake_args": ["-DGLFW_BUILD_TESTS=OFF"]
-  },
-  "stb": {
-    "repo": "https://github.com/nothings/stb.git",
-    "tag": "master",
-    "copy_file_list": ["stb_image.h"],
-    "cpp_template": "#define STB_IMAGE_IMPLEMENTATION\n#include <stb_image.h>"
-  },
-  "json": {
-    "repo": "https://github.com/nlohmann/json.git",
-    "tag": "v3.12.0",
-    "cmake_args": ["-DJSON_BuildTests=OFF"]
-  },
-  "assimp": {
-    "repo": "https://github.com/assimp/assimp.git",
-    "tag": "v6.0.2",
-    "cmake_args": ["-DASSIMP_BUILD_TESTS=OFF", "-DASSIMP_WARNINGS_AS_ERRORS=OFF"]
   },
   "backpack": {
     "url": "https://learnopengl-cn.github.io/data/backpack.zip",

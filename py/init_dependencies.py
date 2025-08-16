@@ -1,7 +1,6 @@
 import shutil
 import subprocess
 import sys
-import urllib.request
 import json
 import zipfile
 import urllib.parse
@@ -16,11 +15,91 @@ project_root = Path(__file__).resolve().parent
 VENV_NAME = '.venv'
 REQUIREMENTS_FILE = 'requirements.txt'
 
+PATH_FLAG = ":P"
+APP_FLAG = ":A"
+SP_FLAG = ":SP"
+SKIP_CHECK_PATH_FLAG = ["output"]
+
+CUSTOM_ENV = {
+    "PATH": ''
+}
+
+# 将相对路径转化为绝对路径
+def to_abs_path(path):
+    return (project_root / path).resolve()
+
+def check_conversion_paths(data, flag = ''):
+    if isinstance(data, dict):
+        temp_data = {}
+        for name, value in data.items():
+            flag = ''
+            temp_name = name
+            if PATH_FLAG in name:
+                temp_name = str(name).replace(PATH_FLAG, "")
+                flag = PATH_FLAG
+            elif APP_FLAG in name:
+                temp_name = str(name).replace(APP_FLAG, "")
+                flag = APP_FLAG
+            elif name in SKIP_CHECK_PATH_FLAG:
+                flag = SKIP_CHECK_PATH_FLAG
+            elif SP_FLAG in name:
+                temp_name = str(name).replace(SP_FLAG, "")
+                flag = SP_FLAG
+            temp_data[temp_name] = check_conversion_paths(value, flag)
+        return temp_data
+    elif isinstance(data, list):
+        return [check_conversion_paths(item) for item in data]
+    else:
+        if flag == PATH_FLAG:
+            abs_path = to_abs_path(data)
+            if abs_path.exists():
+                return str(abs_path)
+            else:
+                warnings.warn(f"路径 {data} 不是一个有效的路径...请检查路径...")
+                return str(data)
+        elif flag == APP_FLAG:
+            abs_path = to_abs_path(data)
+            app_name = abs_path.name.replace(".exe", "")
+            if platform.system() == "Windows":
+                abs_path = to_abs_path(abs_path.parent / (app_name + ".exe"))
+            if abs_path.exists():
+                return str(abs_path)
+            elif shutil.which(app_name):
+                warnings.warn(f"路径 {data} 不是一个有效的应用程序路径...使用系统的该应用程序...")
+                return str(app_name)
+            else:
+                warnings.warn(f"路径 {data} 不是一个有效的应用程序路径且系统中不存在该应用程序...")
+                sys.exit(1)
+        elif APP_FLAG in data:
+            data = str(data).replace(APP_FLAG, "")
+            if "=" in data:
+                data = data.split('=')
+                abs_path = to_abs_path(data[-1])
+                return data[0] + '=' + str(abs_path)
+            else:
+                return str(to_abs_path(data))
+        elif PATH_FLAG in data:
+            data = str(data).replace(PATH_FLAG, "")
+            if "=" in data:
+                data = data.split('=')
+                abs_path = to_abs_path(data[-1])
+                return data[0] + '=' + str(abs_path)
+            else:
+                return str(to_abs_path(data))
+        elif SP_FLAG in data:
+            data = str(data).replace(SP_FLAG, "")
+            return str(to_abs_path(data))
+        elif flag == SKIP_CHECK_PATH_FLAG or flag == SP_FLAG:
+            abs_path = to_abs_path(data)
+            return str(abs_path)
+        else:
+            return str(data)
+
 # 创建虚拟环境并安装依赖.
 def create_and_install():
 
-    abs_venv_path = (project_root / VENV_NAME).resolve()
-    abs_requirements_path = (project_root / REQUIREMENTS_FILE).resolve()
+    abs_venv_path = to_abs_path(VENV_NAME)
+    abs_requirements_path = to_abs_path(REQUIREMENTS_FILE)
 
     # 检查虚拟环境是否已经存在
     if not abs_venv_path.exists():
@@ -35,17 +114,17 @@ def create_and_install():
     else:
         print(f"虚拟环境 '{VENV_NAME}' 已存在，跳过创建步骤。")
     if os.name == 'nt':
-        venv_python_path = abs_venv_path / 'Scripts' / 'python.exe'
-        pip_path = abs_venv_path / 'Scripts' / 'pip'
+        venv_python_path = to_abs_path(abs_venv_path / 'Scripts' / 'python.exe')
+        pip_path = to_abs_path(abs_venv_path / 'Scripts' / 'pip')
     else:
-        venv_python_path = abs_venv_path / 'bin' / 'python'
-        pip_path = abs_venv_path / 'bin' / 'pip'
+        venv_python_path = to_abs_path(abs_venv_path / 'bin' / 'python')
+        pip_path = to_abs_path(abs_venv_path / 'bin' / 'pip')
     if sys.executable != str(venv_python_path):
         print("当前运行环境不在虚拟环境中，正在切换...")
         # 使用虚拟环境中的解释器重新启动当前脚本
         # 注意：sys.argv 包含了原始的命令行参数
         try:
-            subprocess.run([venv_python_path] + sys.argv, check=True)
+            subprocess.run([str(venv_python_path)] + sys.argv, check=True)
             # 成功重新启动后，退出当前进程
             sys.exit(0)
         except FileNotFoundError:
@@ -109,26 +188,36 @@ def parse_glad_url(glad_url):
     return config
 
 # 运行 CMake 命令.
-def run_command(command, cwd=None, env = ''):
+def run_command(command, cwd=None):
     """
     运行一个 shell 命令并检查错误。
     参数:
         command (List[str]): 命令.
     """
-    print(f"运行命令: {command}")
-    prev_env = os.environ.copy()
-    current_path = os.environ.get("PATH", "")
-    if env:
-        # 组合一个新的 PATH 字符串
-        new_path_string = f"{env}{os.pathsep}{current_path}"
-        os.environ["PATH"] = new_path_string
+    str_command = [str(item) for item in command]
+    message_command = ' '.join(str_command)
+    print(f"运行命令: {message_command}")
+
+    custom_env = CUSTOM_ENV
+    env = os.environ.copy()
+    if custom_env:
+        for name, value in custom_env.items():
+            if name == 'PATH':
+                if isinstance(value, list):
+                    for path in value:
+                        env[name] = f"{path}{os.pathsep}{env.get(name, '')}"
+                else:
+                    env[name] = f"{value}{os.pathsep}{env.get(name, '')}"
+            else:
+                # 否则，直接赋值
+                env[name] = value
+
     try:
-        subprocess.run(command, check=True, cwd=cwd, text=True, stdout=sys.stdout, stderr=sys.stderr)
+        subprocess.run(str_command, check=True, cwd=cwd, env=env, text=True, stdout=sys.stdout, stderr=sys.stderr)
     except subprocess.CalledProcessError as e:
-        print(f"命令失败并出现错误: {e}", file=sys.stderr)
+        str_e = ' '.join(e.cmd)
+        print(f"命令失败并出现错误: {str_e}", file=sys.stderr)
         sys.exit(1)
-    finally:
-        os.environ = prev_env
 
 # 下载资源文件.
 def download_source(url, download_save_path):
@@ -228,7 +317,7 @@ def main():
     """
 
     # 定义配置文件的路径
-    json_file = project_root / "config.json"
+    json_file = to_abs_path("config.json")
 
     try:
         with open(str(json_file), 'r', encoding='utf-8') as f:
@@ -240,67 +329,41 @@ def main():
         print(f"错误: 文件 '{json_file}' 格式不正确。")
         sys.exit(1)
 
+    json_data = check_conversion_paths(json_data)
+
+    # 默认配置
     cmake_generator = 'Ninja'
     cmake_path = "cmake"
-    compiler_root = ''
     cmake_defines = {
         "CMAKE_C_COMPILER": "gcc",
         "CMAKE_CXX_COMPILER": "g++",
         "CMAKE_INSTALL_PREFIX": f"{str(project_root / Path("../libGlobal").resolve())}",
         "CMAKE_MAKE_PROGRAM": ''
     }
+
     if 'build_config' in json_data:
         # 读取 build_config.
-        build_config = json_data['build_config']
+        build_config = json_data.get('build_config')
 
         # 替换默认值并插入新值
-        if 'generator' in build_config:
-            cmake_generator = str(build_config['generator'])
-        if 'cmake_path' in build_config:
-            abs_path = (project_root / Path(build_config['cmake_path'])).resolve()
-            app_name = abs_path.name.replace(".exe", "")
-            if not app_name in ".exe" and platform.system() == "Windows":
-                abs_path = abs_path.parent / (app_name + ".exe")
-            if abs_path.exists() and app_name == "cmake":
-                cmake_path = str(abs_path)
-            elif shutil.which(app_name):
-                warnings.warn(f"cmake_path 指定的 {abs_path} 不存在回退为系统 cmake.", UserWarning)
-                cmake_path = "cmake"
-            else:
-                warnings.warn("不存在 cmake 使用默认值.", UserWarning)
-        if "compiler_root" in build_config:
-            abs_path = (project_root / Path(build_config["compiler_root"])).resolve()
-            if abs_path.exists():
-                compiler_root = str(abs_path)
-            else:
-                warnings.warn(f"路径 {abs_path} 无效, 使用默认值.", UserWarning)
+        if "generator" in build_config:
+            cmake_generator = str(build_config.get("generator"))
+        if "cmake_path" in build_config:
+            cmake_path = build_config.get("cmake_path")
+        if "custom_env" in build_config:
+            custom_env = build_config.get("custom_env")
+            for name, value in custom_env.items():
+                CUSTOM_ENV[name] = value
 
-        for name, value in build_config['define'].items():
-            path = project_root / Path(value)
-            if "_PATH" in name:
-                abs_path = path.resolve()
-                if abs_path.exists():
-                    cmake_defines[str(name).replace("_PATH", "")] = str(abs_path)
-                else:
-                    warnings.warn(f"路径 {abs_path} 不是一个有效的路径, 跳过配置项 {name}")
-            elif "_APP" in name:
-                abs_path = path.resolve()
-                app_name = abs_path.name.replace(".exe", "")
-                if not app_name in ".exe" and platform.system() == "Windows":
-                    abs_path = abs_path.parent / (app_name + ".exe")
-                if abs_path.exists():
-                    cmake_defines[str(name).replace("_APP", "")] = str(abs_path)
-                else:
-                    warnings.warn(f"路径 {abs_path} 不是一个有效的路径, 跳过配置项 {name}")
-            else:
-                cmake_defines[name] = value
-
+        # 插入自定义配置项
+        for name, value in build_config.get('define').items():
+            cmake_defines[name] = value
 
         # 删除 json_data 中 build_config
         del json_data['build_config']
 
     # 定义库文件的安装路径.
-    install_root = (project_root / Path(cmake_defines["CMAKE_INSTALL_PREFIX"])).resolve()
+    install_root = to_abs_path(cmake_defines.get("CMAKE_INSTALL_PREFIX"))
     print(f"install_root: {install_root}")
     del cmake_defines["CMAKE_INSTALL_PREFIX"]
 
@@ -315,8 +378,8 @@ def main():
 
     for name, config in json_data.items():
         # 定义源代码和构建目录
-        source_dir = project_root / "_deps_source" / name
-        build_dir = project_root / "_deps_build" / name
+        source_dir = to_abs_path(project_root / "_deps_source" / name)
+        build_dir = to_abs_path(project_root / "_deps_build" / name)
 
         # 定义每个库的独立安装前缀
         install_prefix = install_root / name
@@ -334,6 +397,15 @@ def main():
                 print(f"{name} 的源代码已经存在...跳过克隆.")
 
             if 'cmake_args' in config:
+
+                # 处理 cmake_args 参数.
+                cmake_args = config.get("cmake_args")
+                for index, arg in enumerate(cmake_args):
+                    if "-D" in arg:
+                        cmake_args[index] = arg
+                    else:
+                        cmake_args[index] = f"-D{arg}"
+
                 if not install_prefix.exists():
                     # 运行 CMake 配置，并显式指定 Ninja 和 MinGW-w64 编译器
                     cmake_command = [
@@ -344,14 +416,11 @@ def main():
                         f"-DCMAKE_INSTALL_PREFIX={str(install_prefix)}",
                     ]
                     cmake_command.extend(cmake_defines_list)
-                    cmake_command.extend(config["cmake_args"])
-                    run_command(cmake_command, env = compiler_root)
+                    cmake_command.extend(cmake_args)
+                    run_command(cmake_command)
 
                     # 运行 CMake 构建
-                    if not build_dir.exists():
-                        run_command(["cmake", "--build", str(build_dir)])
-                    else:
-                        print(f"库 ‘{name}’ 构建文件已存在...跳过构建.")
+                    run_command(["cmake", "--build", str(build_dir)])
 
                     # 运行 CMake 安装
                     install_prefix.mkdir(parents=True, exist_ok=True)
@@ -364,19 +433,25 @@ def main():
                 if not install_prefix.exists():
                     print(f"{name} 是一个仅标头库，跳过 CMake 构建...")
                     install_prefix.mkdir(parents=True, exist_ok=True)
-                    for file in config['copy_file_list']:
-                        src_file_path = source_dir / file
-                        include_path = install_prefix / "include" / file
-                        src_path = install_prefix / "src" / file.replace(".h", ".cpp")
+                    for file in config.get('copy_file_list'):
+                        # 拷贝资源文件
+                        if "name" in file:
+                            copy_file_path = to_abs_path(source_dir / file.get("name"))
+                            include_path = to_abs_path(install_prefix / "include" / file.get("name"))
+                            include_path.parent.mkdir(parents=True, exist_ok=True)
+                            shutil.copyfile(copy_file_path, include_path)
+                            print(f"已成功将 {copy_file_path} 复制到 {include_path}")
+                        else:
+                            warnings.warn(f"{name} 库的指定文件不存在")
+                            break
 
-                        include_path.parent.mkdir(parents=True, exist_ok=True)
-                        shutil.copyfile(src_file_path, include_path)
-                        print(f"已成功将 {file} 复制到 {include_path}")
-
-                        (install_prefix / "src").mkdir(parents=True, exist_ok=True)
-                        with open(src_path, "w") as f:
-                            f.write(config['cpp_template'])
-                        print(f"已成功生成 stb_image.cpp 到 {install_prefix}")
+                        # 生成cpp文件
+                        if "cpp_template" in file:
+                            src_path = to_abs_path(install_prefix / "src" / file.get("name").replace(".h", ".cpp"))
+                            to_abs_path(src_path.parent).mkdir(parents=True, exist_ok=True)
+                            with open(src_path, "w") as f:
+                                f.write(str(file.get('cpp_template')))
+                            print(f"已成功生成 stb_image.cpp 到 {src_path.parent}")
                 else:
                     print(f"库 ‘{name}’ 已存在...跳过拷贝")
         elif 'format' in config:
