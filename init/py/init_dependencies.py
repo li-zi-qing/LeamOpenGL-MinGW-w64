@@ -28,6 +28,32 @@ CUSTOM_ENV = {
 def to_abs_path(path):
     return (project_root / path).resolve()
 
+# 自动安装 requirements.txt 中的依赖
+def install_requirements():
+    """
+    检查并安装 requirements.txt 中的依赖。
+    """
+    print("--------------------------------------------------")
+    print("检查并安装 Python 依赖...")
+    req_path = to_abs_path(REQUIREMENTS_FILE)
+    if not req_path.exists():
+        print("警告：找不到 requirements.txt 文件。跳过依赖安装。")
+        return
+
+    # 获取当前虚拟环境的 Python 解释器路径
+    venv_python = sys.executable
+    if not venv_python:
+        print("错误：无法找到当前运行的 Python 解释器。")
+        sys.exit(1)
+
+    # 使用该解释器和 pip 安装依赖
+    try:
+        run_command([venv_python, "-m", "pip", "install", "-r", req_path])
+        print("Python 依赖安装完成。")
+    except Exception as e:
+        print(f"错误：安装依赖失败 - {e}")
+        sys.exit(1)
+
 def check_conversion_paths(data, flag = ''):
     if isinstance(data, dict):
         temp_data = {}
@@ -94,56 +120,6 @@ def check_conversion_paths(data, flag = ''):
             return str(abs_path)
         else:
             return str(data)
-
-# 创建虚拟环境并安装依赖.
-def create_and_install():
-
-    abs_venv_path = to_abs_path(VENV_NAME)
-    abs_requirements_path = to_abs_path(REQUIREMENTS_FILE)
-
-    # 检查虚拟环境是否已经存在
-    if not abs_venv_path.exists():
-        print(f"虚拟环境 '{VENV_NAME}' 不存在，正在创建...")
-        try:
-            # 执行创建虚拟环境的命令
-            subprocess.run([sys.executable, '-m', 'venv', abs_venv_path], check=True)
-            print(f"虚拟环境 '{VENV_NAME}' 创建成功。")
-        except subprocess.CalledProcessError as e:
-            print(f"创建虚拟环境失败: {e}")
-            sys.exit(1)
-    else:
-        print(f"虚拟环境 '{VENV_NAME}' 已存在，跳过创建步骤。")
-    if os.name == 'nt':
-        venv_python_path = to_abs_path(abs_venv_path / 'Scripts' / 'python.exe')
-        pip_path = to_abs_path(abs_venv_path / 'Scripts' / 'pip')
-    else:
-        venv_python_path = to_abs_path(abs_venv_path / 'bin' / 'python')
-        pip_path = to_abs_path(abs_venv_path / 'bin' / 'pip')
-    if sys.executable != str(venv_python_path):
-        print("当前运行环境不在虚拟环境中，正在切换...")
-        # 使用虚拟环境中的解释器重新启动当前脚本
-        # 注意：sys.argv 包含了原始的命令行参数
-        try:
-            subprocess.run([str(venv_python_path)] + sys.argv, check=True)
-            # 成功重新启动后，退出当前进程
-            sys.exit(0)
-        except FileNotFoundError:
-            print(f"错误：找不到虚拟环境中的解释器 '{venv_python_path}'。")
-            sys.exit(1)
-    else:
-        # 检查 requirements.txt 文件是否存在
-        if abs_requirements_path.exists():
-            print(f"正在安装 '{REQUIREMENTS_FILE}' 中的依赖...")
-            try:
-                # 使用虚拟环境中的 pip 安装依赖
-                subprocess.run([pip_path, 'install', '-r', abs_requirements_path], check=True)
-                print("依赖安装成功！")
-            except subprocess.CalledProcessError as e:
-                print(f"安装依赖失败: {e}")
-                sys.exit(1)
-        else:
-            print(f"错误: 文件 '{REQUIREMENTS_FILE}' 不存在，无法安装依赖。")
-            sys.exit(1)
 
 # 解析 GLAD 的永久链接.
 def parse_glad_url(glad_url):
@@ -337,7 +313,7 @@ def main():
     cmake_defines = {
         "CMAKE_C_COMPILER": "gcc",
         "CMAKE_CXX_COMPILER": "g++",
-        "CMAKE_INSTALL_PREFIX": f"{str(project_root / Path("../libGlobal").resolve())}",
+        "CMAKE_INSTALL_PREFIX": f"{str(project_root / Path("../../libGlobal").resolve())}",
         "CMAKE_MAKE_PROGRAM": ''
     }
 
@@ -478,7 +454,6 @@ def main():
 
 
 if __name__ == "__main__":
-    create_and_install()
+    install_requirements()
     import requests
-
     main()

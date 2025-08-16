@@ -1,7 +1,7 @@
 /.idea/
 /cmake-build-*/
 /libGlobal/
-/py/
+/init/py/
 /resources/object/
-!/py/init_dependencies.py
-!/py/config.json
+!/init/py/init_dependencies.py
+!/init/py/config.json

@@ -1,15 +1,15 @@
 {
   "build_config": {
-    "cmake:A": "../../../IDE/CLion/bin/cmake/win/x64/bin/cmake",
+    "cmake": "cmake",
     "generator": "Ninja",
     "custom_env": {
-      "PATH": ["D:/IDE/CLion/bin/mingw/bin:P"]
+      "PATH": ""
     },
     "define": {
-      "CMAKE_C_COMPILER:A": "D:/IDE/CLion/bin/mingw/bin/gcc",
-      "CMAKE_CXX_COMPILER:A": "D:/IDE/CLion/bin/mingw/bin/g++",
-      "CMAKE_MAKE_PROGRAM:A": "D:/IDE/CLion/bin/ninja/win/x64/ninja",
-      "CMAKE_INSTALL_PREFIX:SP": "../libGlobal"
+      "CMAKE_C_COMPILER": "gcc",
+      "CMAKE_CXX_COMPILER": "g++",
+      "CMAKE_MAKE_PROGRAM": "ninja",
+      "CMAKE_INSTALL_PREFIX:SP": "../../libGlobal"
     }
   },
   "glm": {
@@ -47,12 +47,12 @@
   },
   "glad": {
     "url": "https://gen.glad.sh/#generator=c&api=egl%3D1.5%2Cgl%3D4.6%2Cgles1%3D1.0%2Cgles2%3D3.2%2Cglsc2%3D2.0%2Cglx%3D1.4%2Cvulkan%3D1.4%2Cvulkansc%3D1.4%2Cwgl%3D1.0&profile=gl%3Dcore%2Cgles1%3Dcommon",
-    "output": "../libGlobal/glad",
+    "output": "../../libGlobal/glad",
     "format": ".zip"
   },
   "backpack": {
     "url": "https://learnopengl-cn.github.io/data/backpack.zip",
-    "output": "../resources/object/backpack",
+    "output": "../../resources/object/backpack",
     "format": ".zip"
   }
 }
