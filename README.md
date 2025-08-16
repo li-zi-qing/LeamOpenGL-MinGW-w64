@@ -8,23 +8,28 @@
 ## 快速开始
 
 ### 1. 前置条件
-&emsp;在开始之前，请确保你的系统已安装以下工具：
-* **[Mingw-w64](https://github.com/niXman/mingw-builds-binaries/releases)**：一个用于 Windows 的 C/C++ 工具链。
-* **[Python](https://www.python.org/)**：用于运行初始化脚本。
-* **[Ninja](https://github.com/ninja-build/ninja/releases)**：一个快速地构建系统。
+- 在开始之前，请确保你的系统已安装以下工具：
+    * **[Mingw-w64](https://github.com/niXman/mingw-builds-binaries/releases)**：一个用于 Windows 的 C/C++ 工具链。
+    * **[Python](https://www.python.org/)**：用于运行初始化脚本。
+    * **[Ninja](https://github.com/ninja-build/ninja/releases)**：一个快速地构建系统。
 
 ### 2. 初始化依赖项
-&emsp;在项目根目录运行以下命令，脚本将自动配置所有必要地依赖项:
-```bash
-  python py/init_dependencies.py
-```
+在项目根目录运行以下命令，脚本将自动配置所有必要地依赖项:
+- #### Windows
+  ```bash
+  .\init\init_lib.bat
+  ```
+- #### Linux/Mac
+  ```bash
+  ./init/init_lib.sh
+  ```
 ### 3. 打开项目
 &emsp;&emsp;使用 CLion 或任何你喜欢的 IDE 打开项目即可.
 
 ### 4. 切换节章
 &emsp;&emsp;打开 **CMakeLists.txt** 文件修改双引号的内容为对应的节章名(src 目录下除 lib 文件夹外的所有文件夹名):
-```
-示例: SET(CHAPTER "light")
+```cmake
+SET(CHAPTER "light")
 ```
 
 ### 5. 修改默认运行配置
@@ -58,4 +63,57 @@ lightCubeShader
             .setMat4(uniform.projection)//读取 uniform 上的 projection.
             .setMat4(uniform.view);
 ```
-### 7. 开始你的 OpenGL 学习之路 ( =ω= ) .
+### 7. 自定义配置项
+- #### 1. 后缀
+    - :P (将配置值当作路径处理, 该后缀会将相对路径转化为绝对路径, 并检查路径是否有效.),
+    - :A (将配置值当作程序路径处理, 该后缀会将相对路径转化为绝对路径, 并检查程序路径是否有效.),
+    - :SP (将配置值当作程序路径处理, 该后缀会将相对路径转化为绝对路径, 并跳过路径检查.)
+- #### 2. 自定义库的构建工具链
+    - 使用系统工具链的示例
+      ```json
+      {
+        "build_config": {
+          "cmake": "cmake",
+          "generator": "Ninja",
+          "custom_env": {
+            "PATH": ""
+          },
+          "define": {
+            "CMAKE_C_COMPILER": "gcc",
+            "CMAKE_CXX_COMPILER": "g++",
+            "CMAKE_MAKE_PROGRAM": "ninja",
+            "CMAKE_INSTALL_PREFIX:SP": "../../libGlobal"
+          }
+        }
+      }
+      ```
+    - 使用自定义工具链的示例
+       ```json
+       {
+         "build_config": {
+           "cmake:A": "D:/CMake/bin/cmake",
+           "generator": "Ninja",
+           "custom_env": {
+             "PATH:P": "D:/mingw64/bin"
+           },
+           "define": {
+             "CMAKE_C_COMPILER:A": "D:/mingw64/bin/gcc",
+             "CMAKE_CXX_COMPILER:A": "D:/mingw64/bin/g++",
+             "CMAKE_MAKE_PROGRAM:A": "D:/ninja/ninja",
+             "CMAKE_INSTALL_PREFIX:SP": "../../libGlobal"
+           }
+         }
+       }
+       ```
+    - 注意:
+        - 如果你想添加一些必要的系统变量, 请直接提供 **键-值** 对.
+        - 如果你想使用自定义工具链, 请将一些必要的路径添加到 custom_env 中, 如果要添加一个或多个路径到系统 PATH 中请修改 **PATH** 的值, **PATH** 支持数组值, 示例如下:
+          ```json
+          {
+            "custom_env": {
+              "PATH": ["D:/mingw64/bin:P", "D:/ninja/ninja:A"],
+              "custom_var": "xxxx"
+            }
+          }
+          ```
+### 8. 开始你的 OpenGL 学习之路 ( =ω= ) .

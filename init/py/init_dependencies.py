@@ -78,11 +78,9 @@ def check_conversion_paths(data, flag = ''):
     else:
         if flag == PATH_FLAG:
             abs_path = to_abs_path(data)
-            if abs_path.exists():
-                return str(abs_path)
-            else:
-                warnings.warn(f"路径 {data} 不是一个有效的路径...请检查路径...")
-                return str(data)
+            if not abs_path.exists():
+                warnings.warn(f"路径 {abs_path} 不是一个有效的路径...请检查路径...")
+            return str(abs_path)
         elif flag == APP_FLAG:
             abs_path = to_abs_path(data)
             app_name = abs_path.name.replace(".exe", "")
@@ -91,27 +89,52 @@ def check_conversion_paths(data, flag = ''):
             if abs_path.exists():
                 return str(abs_path)
             elif shutil.which(app_name):
-                warnings.warn(f"路径 {data} 不是一个有效的应用程序路径...使用系统的该应用程序...")
+                warnings.warn(f"路径 {abs_path} 不是一个有效的应用程序路径...使用系统的该应用程序...")
                 return str(app_name)
             else:
-                warnings.warn(f"路径 {data} 不是一个有效的应用程序路径且系统中不存在该应用程序...")
+                warnings.warn(f"路径 {abs_path} 不是一个有效的应用程序路径且系统中不存在该应用程序...")
                 sys.exit(1)
         elif APP_FLAG in data:
             data = str(data).replace(APP_FLAG, "")
+            data = data.replace(".exe", "")
+            if platform.system() == "Windows":
+                data = f"{data}.exe"
             if "=" in data:
                 data = data.split('=')
                 abs_path = to_abs_path(data[-1])
-                return data[0] + '=' + str(abs_path)
+                app_name = abs_path.name.replace(".exe", "")
+                if abs_path.exists():
+                    return f"{data[0]}={str(abs_path)}"
+                elif shutil.which(app_name):
+                    warnings.warn(f"路径 {abs_path} 不是一个有效的应用程序路径...使用系统的该应用程序...")
+                    return f"{data[0]}={str(app_name)}"
+                else:
+                    warnings.warn(f"路径 {abs_path} 不是一个有效的应用程序路径且系统中不存在该应用程序...")
+                    sys.exit(1)
             else:
-                return str(to_abs_path(data))
+                abs_path = to_abs_path(data)
+                app_name = abs_path.name.replace(".exe", "")
+                if abs_path.exists():
+                    return str(abs_path)
+                elif shutil.which(app_name):
+                    warnings.warn(f"路径 {abs_path} 不是一个有效的应用程序路径...使用系统的该应用程序...")
+                    return str(app_name)
+                else:
+                    warnings.warn(f"路径 {abs_path} 不是一个有效的应用程序路径且系统中不存在该应用程序...")
+                    sys.exit(1)
         elif PATH_FLAG in data:
             data = str(data).replace(PATH_FLAG, "")
             if "=" in data:
                 data = data.split('=')
                 abs_path = to_abs_path(data[-1])
-                return data[0] + '=' + str(abs_path)
+                if not abs_path.exists():
+                    warnings.warn(f"路径 {abs_path} 不是一个有效的路径...请检查路径...")
+                return f"{data[0]}={str(abs_path)}"
             else:
-                return str(to_abs_path(data))
+                abs_path = to_abs_path(data)
+                if not abs_path.exists():
+                    warnings.warn(f"路径 {abs_path} 不是一个有效的路径...请检查路径...")
+                return str(abs_path)
         elif SP_FLAG in data:
             data = str(data).replace(SP_FLAG, "")
             return str(to_abs_path(data))
@@ -232,7 +255,7 @@ def download_source(url, download_save_path):
                 with open(download_save_path, 'wb') as f:
                     f.write(download_response.content)
                 print(f"下载成功！文件已保存为 '{download_save_path}'")
-                print(f"文件大小：{Path(download_save_path).stat().st_size >> 20} MB")
+                print(f"文件大小：{Path(download_save_path).stat().st_size / 1024 / 1024} MB")
             else:
                 print("错误: 服务器未返回重定向响应。")
                 print("响应状态码:", response.status_code)
@@ -258,7 +281,7 @@ def download_source(url, download_save_path):
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
             print(f"文件 '{download_save_path}' 下载成功！")
-            print(f"文件大小：{Path(download_save_path).stat().st_size >> 20} MB")
+            print(f"文件大小：{Path(download_save_path).stat().st_size / 1024 / 1024} MB")
         except Exception as e:
             print(f"下载失败：发生错误 - {e}")
             shutil.rmtree(download_save_path)
